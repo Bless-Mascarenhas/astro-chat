@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ngrok & cloudflared binaries
+ngrok.exe
+cloudflared.exe
+ngrok.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

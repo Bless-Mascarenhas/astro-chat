@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstroChat — Cosmic AI Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #06061a;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --accent: #a78bfa;
+    --accent2: #f472b6;
+    --gold: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --user-bubble: linear-gradient(135deg, #7c3aed, #a855f7);
+    --ai-bubble: rgba(255,255,255,0.05);
+    --glow: 0 0 40px rgba(167,139,250,0.2);
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Stars background */
+  .stars {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(1px 1px at 20% 30%, white, transparent),
+      radial-gradient(1px 1px at 80% 10%, white, transparent),
+      radial-gradient(1.5px 1.5px at 50% 60%, rgba(255,255,255,0.8), transparent),
+      radial-gradient(1px 1px at 10% 80%, white, transparent),
+      radial-gradient(1px 1px at 90% 70%, white, transparent),
+      radial-gradient(1px 1px at 35% 90%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 65% 45%, white, transparent),
+      radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(2px 2px at 75% 85%, rgba(167,139,250,0.6), transparent),
+      radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.9), transparent);
+  }
+
+  .nebula {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124,58,237,0.15), transparent),
+      radial-gradient(ellipse 50% 60% at 80% 80%, rgba(244,114,182,0.1), transparent),
+      radial-gradient(ellipse 70% 50% at 50% 50%, rgba(16,16,48,0.8), transparent);
+  }
+
+  /* Header */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(6,6,26,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 0 20px rgba(167,139,250,0.4);
+  }
+
+  .logo-text { font-size: 1.4rem; font-weight: 700; }
+  .logo-text span { background: linear-gradient(90deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 999px;
+    font-size: 0.8rem; color: #86efac;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  /* ── Loading bar ── */
+  .loading-bar {
+    position: relative; z-index: 20;
+    height: 3px;
+    background: rgba(167,139,250,0.12);
+    overflow: hidden;
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: opacity 0.2s, transform 0.3s ease;
+  }
+
+  .loading-bar.active {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, #a78bfa, #f472b6, #a78bfa, transparent);
+    animation: barSlide 1.4s ease-in-out infinite;
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(167,139,250,0.8);
+  }
+
+  @keyframes barSlide {
+    0%   { left: -60%; }
+    100% { left: 110%; }
+  }
+
+  /* Chat container */
+  .chat-wrapper {
+    position: relative; z-index: 5;
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    max-width: 860px; width: 100%;
+    margin: 0 auto; padding: 0 1rem;
+  }
+
+  .messages {
+    flex: 1; min-height: 0; overflow-y: scroll;
+    padding: 1.5rem 0.5rem 1rem 0;
+    display: flex; flex-direction: column; gap: 1.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(167,139,250,0.55) rgba(255,255,255,0.04);
+  }
+
+  .messages::-webkit-scrollbar { width: 7px; }
+  .messages::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    margin: 8px 0;
+  }
+  .messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #a78bfa, #f472b6);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 8px rgba(167,139,250,0.5);
+  }
+  .messages::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #c4b5fd, #fb7185);
+    box-shadow: 0 0 14px rgba(167,139,250,0.8);
+  }
+
+  /* Welcome screen */
+  .welcome {
+    text-align: center; padding: 3rem 1rem;
+    display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+  }
+
+  .welcome-orb {
+    width: 90px; height: 90px;
+    background: linear-gradient(135deg, #7c3aed, #f472b6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+    box-shadow: 0 0 60px rgba(167,139,250,0.4), 0 0 120px rgba(244,114,182,0.2);
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .welcome h2 { font-size: 2rem; font-weight: 700; }
+  .welcome h2 span { background: linear-gradient(90deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .welcome p { color: var(--muted); max-width: 420px; line-height: 1.6; }
+
+  .suggestions {
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    justify-content: center; margin-top: 0.5rem;
+  }
+
+  .suggestion-btn {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--accent);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .suggestion-btn:hover {
+    background: rgba(167,139,250,0.1);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 0.75rem; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+
+  .msg.ai .avatar { background: linear-gradient(135deg, #7c3aed44, #a855f744); border: 1px solid rgba(167,139,250,0.3); }
+  .msg.user .avatar { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+
+  .bubble {
+    max-width: 75%; padding: 0.9rem 1.2rem;
+    border-radius: 16px; line-height: 1.65; font-size: 0.95rem;
+  }
+
+  .msg.ai .bubble {
+    background: var(--ai-bubble);
+    border: 1px solid var(--border);
+    border-radius: 4px 16px 16px 16px;
+  }
+
+  .msg.user .bubble {
+    background: var(--user-bubble);
+    border-radius: 16px 4px 16px 16px;
+  }
+
+  /* Typing indicator */
+  .typing { display: flex; gap: 5px; align-items: center; padding: 0.4rem 0; }
+  .typing span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); opacity: 0.5;
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 1rem 0 1.5rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+  }
+
+  .input-row {
+    display: flex; gap: 0.75rem; align-items: flex-end;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 0.75rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-row:focus-within {
+    border-color: rgba(167,139,250,0.5);
+    box-shadow: var(--glow);
+  }
+
+  textarea {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem; resize: none; line-height: 1.5;
+    max-height: 140px; min-height: 24px;
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  #send-btn {
+    width: 40px; height: 40px; border-radius: 10px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+
+  #send-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(167,139,250,0.4); }
+  #send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .input-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.75rem; color: var(--muted);
+    padding: 0 0.25rem;
+  }
+
+  .model-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    background: rgba(167,139,250,0.1);
+    border: 1px solid rgba(167,139,250,0.2);
+    border-radius: 999px;
+    color: var(--accent); font-size: 0.75rem;
+  }
+
+  /* Zodiac symbols row */
+  .zodiac-row {
+    display: flex; gap: 1rem; justify-content: center;
+    padding: 0.5rem; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .zodiac-row::-webkit-scrollbar { display: none; }
+  .zodiac-sym { font-size: 1.3rem; opacity: 0.4; cursor: default; transition: opacity 0.2s; }
+  .zodiac-sym:hover { opacity: 1; }
+
+  /* Error message */
+  .error-msg {
+    text-align: center; padding: 0.6rem 1rem;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px; color: #fca5a5; font-size: 0.85rem;
+    margin: 0.5rem 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="stars"></div>
+<div class="nebula"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <div class="logo-text"><span>AstroChat</span></div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    Ollama Connected
+  </div>
+</header>
+<div class="loading-bar" id="loading-bar"></div>
+
+<div class="chat-wrapper">
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-orb">🔮</div>
+      <h2>Your <span>Cosmic Guide</span> Awaits</h2>
+      <p>Ask me anything about astrology — birth charts, zodiac signs, planetary transits, compatibility, and more.</p>
+      <div class="suggestions">
+        <button class="suggestion-btn" onclick="suggest(this)">♈ What does my Aries sun mean?</button>
+        <button class="suggestion-btn" onclick="suggest(this)">🪐 What is a Saturn return?</button>
+        <button class="suggestion-btn" onclick="suggest(this)">💞 Scorpio & Pisces compatibility?</button>
+        <button class="suggestion-btn" onclick="suggest(this)">🌙 How does the moon sign affect me?</button>
+        <button class="suggestion-btn" onclick="suggest(this)">⭐ Explain birth chart houses</button>
+        <button class="suggestion-btn" onclick="suggest(this)">🔮 What is Mercury retrograde?</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="zodiac-row">
+      <span class="zodiac-sym" title="Aries">♈</span>
+      <span class="zodiac-sym" title="Taurus">♉</span>
+      <span class="zodiac-sym" title="Gemini">♊</span>
+      <span class="zodiac-sym" title="Cancer">♋</span>
+      <span class="zodiac-sym" title="Leo">♌</span>
+      <span class="zodiac-sym" title="Virgo">♍</span>
+      <span class="zodiac-sym" title="Libra">♎</span>
+      <span class="zodiac-sym" title="Scorpio">♏</span>
+      <span class="zodiac-sym" title="Sagittarius">♐</span>
+      <span class="zodiac-sym" title="Capricorn">♑</span>
+      <span class="zodiac-sym" title="Aquarius">♒</span>
+      <span class="zodiac-sym" title="Pisces">♓</span>
+    </div>
+    <div class="input-row">
+      <textarea id="user-input" rows="1" placeholder="Ask about your stars, birth chart, transits…" maxlength="2000"></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+    </div>
+    <div class="input-footer">
+      <span>Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for newline</span>
+      <div class="model-badge">✦ qwen3.5:4b · ollama</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODEL = 'qwen3.5:4b';
+const OLLAMA_URL = '/api/chat'; // Proxied through server.py — no CORS issues
+
+const SYSTEM_PROMPT = `You are AstroGuide, a concise and mystical astrology expert. Answer questions about zodiac signs, birth charts, planets, houses, transits, moon phases, compatibility, Mercury retrograde, and Vedic astrology. Be warm, insightful, and use ✨ 🌙 🪐 emojis sparingly. Keep answers focused and under 150 words unless the user asks for more detail.`;
+
+let history = [];
+let isLoading = false;
+
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('user-input');
+const sendBtn = document.getElementById('send-btn');
+
+// Auto-resize textarea
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+});
+
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function suggest(btn) {
+  inputEl.value = btn.textContent.trim().replace(/^[^\w]*/, '');
+  inputEl.focus();
+}
+
+function appendMessage(role, content) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'user' ? '👤' : '🔮';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = formatText(content);
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return bubble;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typing-indicator';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = '🔮';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+function showError(msg) {
+  const err = document.createElement('div');
+  err.className = 'error-msg';
+  err.textContent = msg;
+  messagesEl.appendChild(err);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function formatText(text) {
+  // Strip Qwen3 <think>...</think> internal reasoning blocks
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>')
+    .trim();
+}
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text || isLoading) return;
+
+  isLoading = true;
+  sendBtn.disabled = true;
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+
+  document.getElementById('loading-bar').classList.add('active');
+
+  appendMessage('user', text);
+  history.push({ role: 'user', content: text });
+
+  showTyping();
+
+  try {
+    const response = await fetch(OLLAMA_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      mode: 'cors',
+      body: JSON.stringify({
+        model: MODEL,
+        think: false,
+        options: { num_predict: 250 },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...history
+        ],
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama returned ${response.status}. Make sure Ollama is running.`);
+    }
+
+    removeTyping();
+    const bubble = appendMessage('ai', '');
+    let fullText = '';
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter(l => l.trim());
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          if (data.message?.content) {
+            fullText += data.message.content;
+            // Only render visible (non-thinking) text
+            const visible = formatText(fullText);
+            if (visible) bubble.innerHTML = visible;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          }
+        } catch {}
+      }
+    }
+
+    history.push({ role: 'assistant', content: fullText });
+
+  } catch (err) {
+    removeTyping();
+    showError(`⚠️ ${err.message || 'Could not reach Ollama. Is it running on port 11434?'}`);
+  } finally {
+    isLoading = false;
+    sendBtn.disabled = false;
+    document.getElementById('loading-bar').classList.remove('active');
+    inputEl.focus();
+  }
+}
+</script>
+</body>
+</html>
