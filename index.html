@@ -202,18 +202,25 @@
     font-style: italic;
   }
   .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+    padding-bottom: 4rem;
+    max-width: 800px;
+    margin: 0 auto;
   }
   .feature-card {
     border: 1px solid var(--meridian);
-    padding: 2.5rem;
+    padding: 3rem;
     background: var(--bg);
-    transition: transform 0.3s, border-color 0.3s;
+    border-radius: 12px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+    position: sticky;
+    top: 15vh;
+    transform-origin: center top;
+    transition: border-color 0.3s;
   }
   .feature-card:hover {
-    transform: translateY(-5px);
     border-color: var(--accent);
   }
   .feature-icon {
@@ -379,6 +386,10 @@
     </div>
   </footer>
 
+  <!-- GSAP Core & ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
   <script>
     const html = document.documentElement;
     const canvas = document.getElementById("hero-lightpass");
@@ -464,6 +475,41 @@
       );
       
       requestAnimationFrame(() => updateImage(frameIndex));
+    });
+
+    // --- GSAP Animations ---
+    gsap.registerPlugin(ScrollTrigger);
+
+    // 1. Fade up the section title
+    gsap.from(".section-title", {
+      scrollTrigger: {
+        trigger: "#features",
+        start: "top 85%", // Starts when top of features section hits 85% of viewport
+      },
+      y: 30,
+      opacity: 0,
+      duration: 0.8,
+      ease: "power2.out"
+    });
+
+    // 2. Stacked cards effect
+    const cards = gsap.utils.toArray('.feature-card');
+    cards.forEach((card, index) => {
+      // Don't scale down the last card
+      if (index === cards.length - 1) return;
+
+      gsap.to(card, {
+        scrollTrigger: {
+          trigger: card,
+          start: "top 15vh", // Triggers exactly when the card becomes sticky
+          endTrigger: ".features", // Animation ends when the whole section ends
+          end: "bottom bottom",
+          scrub: true, // Smoothly link the animation to the scroll position
+        },
+        scale: 0.85, // Scale down slightly to create a 3D depth effect
+        opacity: 0.3, // Fade out as it goes further back in the stack
+        ease: "none"
+      });
     });
   </script>
 </body>
