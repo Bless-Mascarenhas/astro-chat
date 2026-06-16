@@ -389,6 +389,11 @@
   </section>
 
   <section id="features" class="features">
+    <!-- Features GSAP Canvas Background -->
+    <div class="features-bg-sticky" style="position: sticky; top: 0; height: 0; width: 100%; z-index: 0; pointer-events: none; overflow: visible;">
+      <canvas id="features-canvas" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.4; mix-blend-mode: screen;"></canvas>
+    </div>
+
     <div class="container">
       <h2 class="section-title">Cosmic Capabilities</h2>
       <div class="features-grid">
@@ -552,6 +557,74 @@
         opacity: 0.3, // Fade out as it goes further back in the stack
         ease: "none"
       });
+    });
+
+    // 3. Features Canvas Sequence (Frames2)
+    const fCanvas = document.getElementById("features-canvas");
+    const fCtx = fCanvas.getContext("2d");
+
+    const fFrameCount = 240;
+    const currentFFrame = index => `Frames2/ezgif-frame-${index.toString().padStart(3, '0')}.jpg`;
+
+    const fImages = [];
+    const fState = { frame: 1 };
+
+    for (let i = 1; i <= fFrameCount; i++) {
+      const img = new Image();
+      img.src = currentFFrame(i);
+      fImages.push(img);
+    }
+
+    fImages[0].onload = () => {
+      fCanvas.width = window.innerWidth;
+      fCanvas.height = window.innerHeight;
+      drawScaledImageGeneric(fCanvas, fCtx, fImages[0]);
+    };
+
+    function drawScaledImageGeneric(canvasEl, ctx, img) {
+      if (!img || !img.complete || img.naturalWidth === 0) return;
+      const canvasRatio = canvasEl.width / canvasEl.height;
+      const imgRatio = img.width / img.height;
+      let drawWidth, drawHeight, startX, startY;
+
+      if (canvasRatio > imgRatio) {
+        drawWidth = canvasEl.width;
+        drawHeight = canvasEl.width / imgRatio;
+        startX = 0;
+        startY = (canvasEl.height - drawHeight) / 2;
+      } else {
+        drawWidth = canvasEl.height * imgRatio;
+        drawHeight = canvasEl.height;
+        startX = (canvasEl.width - drawWidth) / 2;
+        startY = 0;
+      }
+      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      ctx.drawImage(img, startX, startY, drawWidth, drawHeight);
+    }
+
+    window.addEventListener('resize', () => {
+      fCanvas.width = window.innerWidth;
+      fCanvas.height = window.innerHeight;
+      drawScaledImageGeneric(fCanvas, fCtx, fImages[fState.frame - 1] || fImages[0]);
+    });
+
+    // Scrub the canvas sequence synced perfectly with the `.features` scroll
+    gsap.to(fState, {
+      frame: fFrameCount,
+      snap: "frame",
+      ease: "none",
+      scrollTrigger: {
+        trigger: "#features",
+        start: "top top", // Starts exactly when the section hits the top of the viewport
+        end: "bottom bottom", // Ends exactly when the section finishes scrolling
+        scrub: true, // Smoothly link the animation to the scroll position
+      },
+      onUpdate: () => {
+        const frameIndex = fState.frame - 1;
+        if (fImages[frameIndex] && fImages[frameIndex].complete) {
+          drawScaledImageGeneric(fCanvas, fCtx, fImages[frameIndex]);
+        }
+      }
     });
   </script>
 </body>
