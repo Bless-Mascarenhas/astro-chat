@@ -389,24 +389,24 @@
       `Frames/ezgif-frame-${index.toString().padStart(3, '0')}.jpg`
     );
 
-    const preloadImages = () => {
-      for (let i = 1; i < frameCount; i++) {
-        const img = new Image();
-        img.src = currentFrame(i);
-      }
-    };
+    const images = [];
+    let currentFrameIndex = 1;
 
-    const img = new Image();
-    img.src = currentFrame(1);
-    
-    img.onload = function(){
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      drawScaledImage(img);
+    for (let i = 1; i <= frameCount; i++) {
+      const img = new Image();
+      img.src = currentFrame(i);
+      images.push(img);
     }
 
+    images[0].onload = function() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      drawScaledImage(images[0]);
+    };
+
     function drawScaledImage(img) {
-      if(!img.width) return;
+      if (!img || !img.complete || img.naturalWidth === 0) return;
+
       const canvasRatio = canvas.width / canvas.height;
       const imgRatio = img.width / img.height;
       let drawWidth, drawHeight, startX, startY;
@@ -427,14 +427,24 @@
     }
 
     const updateImage = index => {
-      img.src = currentFrame(index);
-      drawScaledImage(img);
-    }
+      currentFrameIndex = index;
+      const img = images[index - 1];
+      
+      if (img && img.complete) {
+        drawScaledImage(img);
+      } else if (img) {
+        img.onload = () => {
+          if (currentFrameIndex === index) {
+            drawScaledImage(img);
+          }
+        };
+      }
+    };
 
     window.addEventListener('resize', () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      drawScaledImage(img);
+      drawScaledImage(images[currentFrameIndex - 1]);
     });
 
     window.addEventListener('scroll', () => {  
@@ -449,14 +459,12 @@
       if (scrollFraction > 1) scrollFraction = 1;
 
       const frameIndex = Math.min(
-        frameCount - 1,
-        Math.floor(scrollFraction * frameCount)
+        frameCount,
+        Math.max(1, Math.floor(scrollFraction * frameCount) + 1)
       );
       
-      requestAnimationFrame(() => updateImage(frameIndex + 1));
+      requestAnimationFrame(() => updateImage(frameIndex));
     });
-
-    preloadImages();
   </script>
 </body>
 </html>
