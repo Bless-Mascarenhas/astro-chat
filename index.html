@@ -91,12 +91,41 @@
     background: var(--surface);
   }
 
-  /* Hero Section */
-  .hero {
-    padding: 8rem 0;
-    text-align: center;
+  /* Video Scroll Container / Hero */
+  .video-scroll-container {
+    height: 400vh;
     position: relative;
-    border-bottom: 1px solid var(--meridian);
+    background: var(--bg);
+  }
+  .video-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+  }
+  canvas#hero-lightpass {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.5;
+    mix-blend-mode: screen;
+  }
+  .hero-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 1;
+    background: linear-gradient(to bottom, rgba(8,9,12,0.9) 0%, rgba(8,9,12,0.1) 50%, rgba(8,9,12,0.9) 100%);
   }
   
   .hero-astrolabe {
@@ -249,9 +278,12 @@
   </header>
 
   <!-- BODY -->
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
+  <!-- Hero Section with Parallax Video -->
+  <section class="video-scroll-container">
+    <div class="video-sticky">
+      <canvas id="hero-lightpass"></canvas>
+      <div class="hero-overlay">
+        <div class="container hero">
       
       <!-- Rotating Astrolabe -->
       <div class="hero-astrolabe">
@@ -302,6 +334,8 @@
       <p>Consult the digital ephemeris. Our advanced AI Astrologer maps the heavens to provide precise insights into your natal chart, daily transits, and cosmic alignments.</p>
       
       <a href="chat.html" class="btn-primary mono">Use Our Bot</a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -345,5 +379,84 @@
     </div>
   </footer>
 
+  <script>
+    const html = document.documentElement;
+    const canvas = document.getElementById("hero-lightpass");
+    const context = canvas.getContext("2d");
+
+    const frameCount = 240;
+    const currentFrame = index => (
+      `Frames/ezgif-frame-${index.toString().padStart(3, '0')}.jpg`
+    );
+
+    const preloadImages = () => {
+      for (let i = 1; i < frameCount; i++) {
+        const img = new Image();
+        img.src = currentFrame(i);
+      }
+    };
+
+    const img = new Image();
+    img.src = currentFrame(1);
+    
+    img.onload = function(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      drawScaledImage(img);
+    }
+
+    function drawScaledImage(img) {
+      if(!img.width) return;
+      const canvasRatio = canvas.width / canvas.height;
+      const imgRatio = img.width / img.height;
+      let drawWidth, drawHeight, startX, startY;
+
+      if (canvasRatio > imgRatio) {
+        drawWidth = canvas.width;
+        drawHeight = canvas.width / imgRatio;
+        startX = 0;
+        startY = (canvas.height - drawHeight) / 2;
+      } else {
+        drawWidth = canvas.height * imgRatio;
+        drawHeight = canvas.height;
+        startX = (canvas.width - drawWidth) / 2;
+        startY = 0;
+      }
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(img, startX, startY, drawWidth, drawHeight);
+    }
+
+    const updateImage = index => {
+      img.src = currentFrame(index);
+      drawScaledImage(img);
+    }
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      drawScaledImage(img);
+    });
+
+    window.addEventListener('scroll', () => {  
+      const scrollTop = html.scrollTop;
+      const videoScrollContainer = document.querySelector('.video-scroll-container');
+      const rect = videoScrollContainer.getBoundingClientRect();
+      const containerTop = scrollTop + rect.top;
+      const maxScrollTop = videoScrollContainer.scrollHeight - window.innerHeight;
+      
+      let scrollFraction = (scrollTop - containerTop) / maxScrollTop;
+      if (scrollFraction < 0) scrollFraction = 0;
+      if (scrollFraction > 1) scrollFraction = 1;
+
+      const frameIndex = Math.min(
+        frameCount - 1,
+        Math.floor(scrollFraction * frameCount)
+      );
+      
+      requestAnimationFrame(() => updateImage(frameIndex + 1));
+    });
+
+    preloadImages();
+  </script>
 </body>
 </html>
